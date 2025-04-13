@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Form Submission Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        form {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .required {
+            color: red;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .methods {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .methods button {
+            flex: 1;
+        }
+        .methods button.active {
+            background: #333;
+        }
+        #directUrlMethod {
+            background: #f39c12;
+        }
+        #directUrlMethod:hover {
+            background: #e67e22;
+        }
+        #formSubmitMethod {
+            background: #3498db;
+        }
+        #formSubmitMethod:hover {
+            background: #2980b9;
+        }
+        #iframeMethod {
+            background: #9b59b6;
+        }
+        #iframeMethod:hover {
+            background: #8e44ad;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            display: none;
+        }
+        iframe {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Direct Form Submission Test</h1>
+    <p>This page allows you to test different methods of form submission to the Google Apps Script.</p>
+    
+    <div class="methods">
+        <button id="directUrlMethod" type="button" class="active">Direct URL Method</button>
+        <button id="formSubmitMethod" type="button">Form Submit Method</button>
+        <button id="iframeMethod" type="button">iFrame Method</button>
+    </div>
+    
+    <div id="successMessage" class="success">
+        Form submitted successfully!
+    </div>
+    
+    <form id="testForm">
+        <div>
+            <label for="firstName">First Name <span class="required">*</span></label>
+            <input type="text" id="firstName" name="firstName" required>
+        </div>
+        
+        <div>
+            <label for="lastName">Last Name <span class="required">*</span></label>
+            <input type="text" id="lastName" name="lastName" required>
+        </div>
+        
+        <div>
+            <label for="email">Email <span class="required">*</span></label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div>
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone">
+        </div>
+        
+        <div>
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="4"></textarea>
+        </div>
+        
+        <button type="submit" id="submitButton">Submit Form</button>
+    </form>
+    
+    <div id="result" class="result"></div>
+    <iframe id="responseFrame" name="responseFrame"></iframe>
+    
+    <script>
+        // Google Apps Script URL
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbzH8pRKDN-e5yJoSYVKGn_iABHj0lzIbpi-rDvrnNedNLDuovy-SQJ0QTwUzNmukEjk/exec";
+        
+        // Method selection
+        let currentMethod = 'directUrl';
+        
+        document.getElementById('directUrlMethod').addEventListener('click', function() {
+            setMethod('directUrl');
+        });
+        
+        document.getElementById('formSubmitMethod').addEventListener('click', function() {
+            setMethod('formSubmit');
+        });
+        
+        document.getElementById('iframeMethod').addEventListener('click', function() {
+            setMethod('iframe');
+        });
+        
+        function setMethod(method) {
+            currentMethod = method;
+            
+            // Update UI
+            document.querySelectorAll('.methods button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (method === 'directUrl') {
+                document.getElementById('directUrlMethod').classList.add('active');
+            } else if (method === 'formSubmit') {
+                document.getElementById('formSubmitMethod').classList.add('active');
+            } else if (method === 'iframe') {
+                document.getElementById('iframeMethod').classList.add('active');
+            }
+        }
+        
+        // Form submission
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const message = document.getElementById('message').value;
+            
+            // Validate required fields
+            if (!firstName || !lastName || !email) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            // Hide previous results
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('responseFrame').style.display = 'none';
+            
+            // Submit based on selected method
+            if (currentMethod === 'directUrl') {
+                submitDirectUrl(firstName, lastName, email, phone, message);
+            } else if (currentMethod === 'formSubmit') {
+                submitFormSubmit(firstName, lastName, email, phone, message);
+            } else if (currentMethod === 'iframe') {
+                submitIframe(firstName, lastName, email, phone, message);
+            }
+        });
+        
+        // Direct URL method
+        function submitDirectUrl(firstName, lastName, email, phone, message) {
+            const queryParams = [
+                `firstName=${encodeURIComponent(firstName)}`,
+                `lastName=${encodeURIComponent(lastName)}`,
+                `email=${encodeURIComponent(email)}`,
+                `phone=${encodeURIComponent(phone || '')}`,
+                `message=${encodeURIComponent(message || '')}`
+            ].join('&');
+            
+            const fullUrl = `${scriptUrl}?${queryParams}`;
+            
+            // Show the URL in the result div
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <p><strong>Direct URL Method</strong></p>
+                <p>Opening URL in new tab:</p>
+                <p><a href="${fullUrl}" target="_blank">${fullUrl}</a></p>
+            `;
+            resultDiv.style.display = 'block';
+            
+            // Open in new tab
+            window.open(fullUrl, '_blank');
+            
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Reset form after submission
+            setTimeout(function() {
+                document.getElementById('testForm').reset();
+            }, 2000);
+        }
+        
+        // Form submit method
+        function submitFormSubmit(firstName, lastName, email, phone, message) {
+            // Create a form element
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = scriptUrl;
+            form.target = '_blank';
+            
+            // Add form fields
+            const fields = [
+                { name: 'firstName', value: firstName },
+                { name: 'lastName', value: lastName },
+                { name: 'email', value: email },
+                { name: 'phone', value: phone || '' },
+                { name: 'message', value: message || '' }
+            ];
+            
+            fields.forEach(field => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = field.name;
+                input.value = field.value;
+                form.appendChild(input);
+            });
+            
+            // Add to body
+            document.body.appendChild(form);
+            
+            // Show the method in the result div
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <p><strong>Form Submit Method</strong></p>
+                <p>Submitting form to Google Apps Script...</p>
+            `;
+            resultDiv.style.display = 'block';
+            
+            // Submit the form
+            form.submit();
+            
+            // Remove the form
+            setTimeout(() => {
+                document.body.removeChild(form);
+            }, 1000);
+            
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Reset form after submission
+            setTimeout(function() {
+                document.getElementById('testForm').reset();
+            }, 2000);
+        }
+        
+        // iFrame method
+        function submitIframe(firstName, lastName, email, phone, message) {
+            // Show iframe
+            const iframe = document.getElementById('responseFrame');
+            iframe.style.display = 'block';
+            
+            // Create a form that targets the iframe
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = scriptUrl;
+            form.target = 'responseFrame';
+            
+            // Add form fields
+            const fields = [
+                { name: 'firstName', value: firstName },
+                { name: 'lastName', value: lastName },
+                { name: 'email', value: email },
+                { name: 'phone', value: phone || '' },
+                { name: 'message', value: message || '' }
+            ];
+            
+            fields.forEach(field => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = field.name;
+                input.value = field.value;
+                form.appendChild(input);
+            });
+            
+            // Add to body
+            document.body.appendChild(form);
+            
+            // Show the method in the result div
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <p><strong>iFrame Method</strong></p>
+                <p>Submitting form to Google Apps Script in iframe...</p>
+                <p>Check the iframe below for the response.</p>
+            `;
+            resultDiv.style.display = 'block';
+            
+            // Submit the form
+            form.submit();
+            
+            // Remove the form
+            setTimeout(() => {
+                document.body.removeChild(form);
+            }, 1000);
+            
+            // Show success message
+            document.getElementById('successMessage').style.display = 'block';
+            
+            // Reset form after submission
+            setTimeout(function() {
+                document.getElementById('testForm').reset();
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
